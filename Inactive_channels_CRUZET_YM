@@ -1,0 +1,117 @@
+//----Script for determining inactive channels
+//----from merged CRUZET DQM root files - Digi occupancy plots
+//----Root files available at: /eos/cms/store/group/dpg_gem/comm_gem/P5_Commissioning/2021/Calibration/CRUZET
+//----Y.M - Aug. 25, 2021
+
+{	
+//Open files and add histograms
+//----Set1 - 690 uA - 7 files
+TFile *f1 = new TFile("rootfile/342810.root");
+TFile *f2 = new TFile("rootfile/342966.root");
+TFile *f3 = new TFile("rootfile/343034.root");
+TFile *f4 = new TFile("rootfile/343082.root");
+TFile *f5 = new TFile("rootfile/343171.root");
+TFile *f6 = new TFile("rootfile/343266.root");
+TFile *f7 = new TFile("rootfile/343387.root");
+
+//----Set2 - 680 uA - 5 files
+// TFile *f1 = new TFile("rootfile/343496.root");
+// TFile *f2 = new TFile("rootfile/343498.root");
+// TFile *f3 = new TFile("rootfile/343621.root");
+// TFile *f4 = new TFile("rootfile/343642.root");
+// TFile *f5 = new TFile("rootfile/343677.root");
+
+//----Comment h6/h7 if Set2
+TH2F *h1[36];
+TH2F *h2[36];
+TH2F *h3[36];
+TH2F *h4[36];
+TH2F *h5[36];
+TH2F *h6[36];
+TH2F *h7[36];
+char name[36];
+char name2[36];
+TList *list[36];
+TH1F *h[36];
+
+//----For Set1
+TDirectory* dir1 = (TDirectory*)f1->Get("DQMData/Run 342810/GEM/Run summary/digi");
+TDirectory* dir2 = (TDirectory*)f2->Get("DQMData/Run 342966/GEM/Run summary/digi");
+TDirectory* dir3 = (TDirectory*)f3->Get("DQMData/Run 343034/GEM/Run summary/digi");
+TDirectory* dir4 = (TDirectory*)f4->Get("DQMData/Run 343082/GEM/Run summary/digi");
+TDirectory* dir5 = (TDirectory*)f5->Get("DQMData/Run 343171/GEM/Run summary/digi");
+TDirectory* dir6 = (TDirectory*)f6->Get("DQMData/Run 343266/GEM/Run summary/digi");
+TDirectory* dir7 = (TDirectory*)f7->Get("DQMData/Run 343387/GEM/Run summary/digi");
+
+//----For Set2
+// TDirectory* dir1 = (TDirectory*)f1->Get("DQMData/Run 343496/GEM/Run summary/digi");
+// TDirectory* dir2 = (TDirectory*)f2->Get("DQMData/Run 343498/GEM/Run summary/digi");
+// TDirectory* dir3 = (TDirectory*)f3->Get("DQMData/Run 343621/GEM/Run summary/digi");
+// TDirectory* dir4 = (TDirectory*)f4->Get("DQMData/Run 343642/GEM/Run summary/digi");
+// TDirectory* dir5 = (TDirectory*)f5->Get("DQMData/Run 343677/GEM/Run summary/digi");
+
+for (int i = 1; i <= 36; i++) {
+
+	if (i<10) sprintf(name, "strip_occ_GE-11_L2_ch0%d",i);
+
+	else if (i>=10) sprintf(name, "strip_occ_GE-11_L2_ch%d",i);
+
+	//----Comment h6/h7 if Set2
+ 	h1[i] = (TH2F*)dir1->Get(name);
+ 	h2[i] = (TH2F*)dir2->Get(name);
+	h3[i] = (TH2F*)dir3->Get(name);
+	h4[i] = (TH2F*)dir4->Get(name);
+	h5[i] = (TH2F*)dir5->Get(name);
+	h6[i] = (TH2F*)dir6->Get(name);
+	h7[i] = (TH2F*)dir7->Get(name);
+	
+	list[i] = new TList;
+	list[i]->Add(h1[i]);
+	list[i]->Add(h2[i]);
+	list[i]->Add(h3[i]);
+	list[i]->Add(h4[i]);
+	list[i]->Add(h5[i]);
+	list[i]->Add(h6[i]);
+	list[i]->Add(h7[i]);
+	
+	sprintf(name2, "h%d",i);
+	h[i] = (TH1F*)h1[i]->Clone("name2");
+	h[i]->Reset();
+	h[i]->Merge(list[i]);
+	list[i]->Delete();
+}
+
+//----test plot
+h[21]->Draw("colz");
+
+//----Open file to write data
+ofstream filep;
+filep.open("txt/HV1_Negative_Endcap_L2.txt"); // Create file
+
+for (int ch = 1; ch <= 36; ch++) {  //loop on chambers
+	for (int i = 1; i < 384; i++) {  //loop on channels
+		for (int j = 1; j < 9; j++) { //loop on eta partitions
+// 
+ 			double bz = h[ch]->GetBinContent(i,j);
+		
+			//---check if empty bin 
+			if (i<129 && bz==0)
+			{
+				cout<<"ch "<<i<<" vfat "<<3*(8-j)+0<<endl;
+				filep<<ch<<" "<<3*(8-j)<<" "<<i<<endl;
+			}
+			else if (i<257 && bz==0)
+			{
+				cout<<"ch "<<i-128<<" vfat "<<3*(8-j)+1<<endl;
+				filep<<ch<<" "<<3*(8-j)+1<<" "<<i-128<<endl;
+			}
+			else if (i<384 && bz==0) 
+			{
+				cout<<"ch "<<i-256<<" vfat "<<3*(8-j)+2<<endl;
+				filep<<ch<<" "<<3*(8-j)+2<<" "<<i-256<<endl;
+			}
+		}
+	}
+}
+filep.close();
+}
